@@ -16,15 +16,16 @@ target/
 dist/
 .cache/
 
-# Anchor local build files (keep .so but ignore build junk)
-**/target/*/
+# Anchor build: ignore all target/ except .so, idl, and types
+**/target/*
 !**/target/deploy/*.so
 !**/target/idl/*
 !**/target/types/*
 
 # Environment files
 .env
-.env.local
+.env.*
+*.local
 
 # Coverage
 coverage/
