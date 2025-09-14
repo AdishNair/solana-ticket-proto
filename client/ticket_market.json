@@ -1,0 +1,206 @@
+{
+  "address": "SWNbKRe5RzCYXA2tfrnXyqXR49ebvsEN4xoyHUKXJ4Y",
+  "metadata": {
+    "name": "ticket_market",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "buy_ticket",
+      "discriminator": [
+        11,
+        24,
+        17,
+        193,
+        168,
+        116,
+        164,
+        169
+      ],
+      "accounts": [
+        {
+          "name": "ticket",
+          "writable": true
+        },
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "buyer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "create_ticket",
+      "discriminator": [
+        16,
+        178,
+        122,
+        25,
+        213,
+        85,
+        96,
+        129
+      ],
+      "accounts": [
+        {
+          "name": "ticket",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  105,
+                  99,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "organizer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "organizer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "price",
+          "type": "u64"
+        },
+        {
+          "name": "resale_allowed",
+          "type": "bool"
+        },
+        {
+          "name": "max_markup",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "list_ticket",
+      "discriminator": [
+        11,
+        213,
+        240,
+        45,
+        246,
+        35,
+        44,
+        162
+      ],
+      "accounts": [
+        {
+          "name": "ticket",
+          "writable": true
+        },
+        {
+          "name": "owner",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "new_price",
+          "type": "u64"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Ticket",
+      "discriminator": [
+        41,
+        228,
+        24,
+        165,
+        78,
+        90,
+        235,
+        200
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "ResaleNotAllowed",
+      "msg": "Ticket resale is not allowed."
+    },
+    {
+      "code": 6001,
+      "name": "NotTicketOwner",
+      "msg": "You are not the ticket owner."
+    },
+    {
+      "code": 6002,
+      "name": "ExceedsMaxMarkup",
+      "msg": "Price exceeds allowed markup."
+    },
+    {
+      "code": 6003,
+      "name": "TicketNotListed",
+      "msg": "Ticket is not listed for sale."
+    }
+  ],
+  "types": [
+    {
+      "name": "Ticket",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "price",
+            "type": "u64"
+          },
+          {
+            "name": "resale_allowed",
+            "type": "bool"
+          },
+          {
+            "name": "max_markup",
+            "type": "u8"
+          },
+          {
+            "name": "original_price",
+            "type": "u64"
+          },
+          {
+            "name": "is_listed",
+            "type": "bool"
+          }
+        ]
+      }
+    }
+  ]
+}

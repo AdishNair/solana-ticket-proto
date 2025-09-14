@@ -1,0 +1,33 @@
+# Node dependencies
+node_modules/
+metaplex-program-library/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS / editor files
+.DS_Store
+*.swp
+
+# Build caches
+target/
+dist/
+.cache/
+
+# Anchor local build files (keep .so but ignore build junk)
+**/target/*/
+!**/target/deploy/*.so
+!**/target/idl/*
+!**/target/types/*
+
+# Environment files
+.env
+.env.local
+
+# Coverage
+coverage/
+
+# VSCode
+.vscode/
