@@ -575,49 +575,92 @@ function getTicketPDA(organizerPublicKey, mintAddress, programId) {
 
 export async function listTicketForResale(mintAddress, newPrice) {
   console.log("📝 Listing ticket for resale...");
-  
-  const solKeypair = readKeypairFromFile(KEYPAIR_PATH);
-  const connection = await createRobustConnection(RPC_URL);
-  
-  const provider = new anchor.AnchorProvider(
-    connection,
-    new anchor.Wallet(solKeypair),
-    { commitment: "confirmed" }
-  );
-  
-  const program = new anchor.Program(IDL, PROGRAM_ID, provider);
-  
-  // Fixed PDA derivation: include mint so it matches creation-time seeds
-  const mintPubkey = new PublicKey(mintAddress);
-  function getTicketPDA(organizerPublicKey, mintAddress, programId) {
-    const [ticketPDA] = PublicKey.findProgramAddressSync([
-      Buffer.from("ticket"),
-      organizerPublicKey.toBuffer(),
-      new PublicKey(mintAddress).toBuffer()
-    ], programId);
-    return ticketPDA;
-  }
+  console.log("  🏷️ Mint:", mintAddress);
+  console.log("  💰 New Price:", newPrice, "SOL");
   
   try {
+    const solKeypair = readKeypairFromFile(KEYPAIR_PATH);
+    const connection = await createRobustConnection(RPC_URL);
+    
+    const provider = new anchor.AnchorProvider(
+      connection,
+      new anchor.Wallet(solKeypair),
+      { commitment: "confirmed" }
+    );
+    
+    const program = new anchor.Program(IDL, PROGRAM_ID, provider);
+    
+    // Get the correct PDA using the organizer (current wallet) and mint
+    const mintPubkey = new PublicKey(mintAddress);
+    const ticketPda = getTicketPDA(solKeypair.publicKey, mintAddress, PROGRAM_ID);
+    
+    console.log("  📍 Using ticket PDA:", ticketPda.toBase58());
+    
+    // First check if the ticket exists and get current data
+    const ticketData = await program.account.ticket.fetch(ticketPda);
+    console.log("  📋 Current ticket data:");
+    console.log("    Owner:", ticketData.owner.toBase58());
+    console.log("    Current price:", ticketData.price.toNumber() / LAMPORTS_PER_SOL, "SOL");
+    console.log("    Original price:", ticketData.originalPrice.toNumber() / LAMPORTS_PER_SOL, "SOL");
+    console.log("    Resale allowed:", ticketData.resaleAllowed);
+    console.log("    Max markup:", ticketData.maxMarkup + "%");
+    console.log("    Currently listed:", ticketData.isListed);
+    
+    // Verify resale is allowed
+    if (!ticketData.resaleAllowed) {
+      throw new Error("Resale is not allowed for this ticket");
+    }
+    
+    // Verify markup doesn't exceed maximum
+    const originalPrice = ticketData.originalPrice.toNumber() / LAMPORTS_PER_SOL;
+    const maxAllowedPrice = originalPrice * (1 + ticketData.maxMarkup / 100);
+    
+    if (newPrice > maxAllowedPrice) {
+      throw new Error(`Price ${newPrice} SOL exceeds maximum allowed price of ${maxAllowedPrice.toFixed(4)} SOL (${ticketData.maxMarkup}% markup)`);
+    }
+    
     const tx = await program.methods
       .listTicket(new BN(newPrice * LAMPORTS_PER_SOL))
       .accounts({
         ticket: ticketPda,
         owner: solKeypair.publicKey,
       })
-      .rpc();
+      .rpc({
+        commitment: "confirmed",
+        preflightCommitment: "confirmed",
+        skipPreflight: false
+      });
     
-    console.log("✅ Ticket listed for resale:", tx);
+    console.log("  ✅ Ticket listed for resale successfully!");
+    console.log("  🔗 Transaction:", tx);
+    
     return tx;
   } catch (error) {
-    console.error("❌ Failed to list ticket:", error);
+    console.error("  ❌ Failed to list ticket:", error.message || error);
+    if (error.logs) {
+      console.error("  📋 Transaction logs:", error.logs);
+    }
     throw error;
   }
 }
 
 // Get ticket information
 export async function getTicketInfo(mintAddress = null) {
+  console.log("🔍 Getting ticket information...");
+  
   try {
+    // Initialize connection and program within the function
+    const solKeypair = readKeypairFromFile(KEYPAIR_PATH);
+    const connection = await createRobustConnection(RPC_URL);
+    
+    const provider = new anchor.AnchorProvider(
+      connection,
+      new anchor.Wallet(solKeypair),
+      { commitment: "confirmed" }
+    );
+    
+    const program = new anchor.Program(IDL, PROGRAM_ID, provider);
+    
     // Use the mint from parameters or fallback to hardcoded
     const mintToUse = mintAddress || MINT_ADDRESS;
     
@@ -625,7 +668,7 @@ export async function getTicketInfo(mintAddress = null) {
     const organizerPubkey = new PublicKey(OWNER_PUBKEY);
     const ticketPDA = getTicketPDA(organizerPubkey, mintToUse, PROGRAM_ID);
     
-    console.log("Looking up PDA:", ticketPDA.toBase58());
+    console.log("  📍 Looking up PDA:", ticketPDA.toBase58());
     
     // Fetch account
     const accountInfo = await connection.getAccountInfo(ticketPDA);
@@ -636,6 +679,8 @@ export async function getTicketInfo(mintAddress = null) {
     
     // Parse the account data
     const ticketData = await program.account.ticket.fetch(ticketPDA);
+    
+    console.log("  ✅ Ticket data retrieved successfully");
     
     return {
       pda: ticketPDA.toBase58(),
@@ -648,7 +693,7 @@ export async function getTicketInfo(mintAddress = null) {
       mint: ticketData.mint.toBase58()
     };
   } catch (error) {
-    console.error("Error in getTicketInfo:", error);
+    console.error("  ❌ Error in getTicketInfo:", error.message || error);
     throw error;
   }
 }

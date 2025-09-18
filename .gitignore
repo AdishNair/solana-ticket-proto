@@ -32,3 +32,5 @@ coverage/
 
 # VSCode
 .vscode/
+# Solana test ledger
+test-ledger/
